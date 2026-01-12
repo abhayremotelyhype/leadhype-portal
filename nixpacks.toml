@@ -1,12 +1,22 @@
 [phases.setup]
 nixPkgs = ["dotnet-sdk_8"]
+aptPkgs = ["curl", "ca-certificates"]
+
+[phases.install]
+cmds = [
+  "curl -sSL https://dot.net/v1/dotnet-install.sh | bash /dev/stdin --channel 8.0",
+  "export DOTNET_ROOT=$HOME/.dotnet",
+  "export PATH=$PATH:$HOME/.dotnet"
+]
 
 [phases.build]
 cmds = [
+  "export DOTNET_ROOT=$HOME/.dotnet",
+  "export PATH=$PATH:$HOME/.dotnet",
   "cd Api",
-  "dotnet restore",
-  "dotnet publish -c Release -o out"
+  "$HOME/.dotnet/dotnet restore",
+  "$HOME/.dotnet/dotnet publish -c Release -o out"
 ]
 
 [start]
-cmd = "cd Api && dotnet out/Api.dll"
+cmd = "cd Api && $HOME/.dotnet/dotnet out/Api.dll"
