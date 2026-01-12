@@ -1,0 +1,314 @@
+// Sample data generator for dashboard testing
+import { DashboardOverview, OverviewStats, CampaignPerformanceMetric, ClientPerformanceMetric, EmailAccountSummary, RecentActivity, TimeSeriesDataPoint } from '@/types';
+
+export function generateSampleDashboardData(): DashboardOverview {
+  const now = new Date();
+  
+  // Generate sample stats
+  const stats: OverviewStats = {
+    totalEmailsSent: 45678,
+    totalEmailsOpened: 18473,
+    totalEmailsReplied: 3421,
+    totalEmailsBounced: 892,
+    totalEmailsClicked: 5234,
+    openRate: 40.4,
+    replyRate: 7.5,
+    bounceRate: 2.0,
+    clickRate: 11.5,
+    recentEmailsSent: 3421,
+    recentEmailsOpened: 1387,
+    recentEmailsReplied: 256,
+    totalCampaigns: 23,
+    activeCampaigns: 15,
+    pausedCampaigns: 6,
+    completedCampaigns: 2,
+    totalClients: 8,
+    totalUsers: 12,
+    totalEmailAccounts: 18,
+    openRateChange: 2.3,
+    replyRateChange: 0.8,
+    bounceRateChange: -0.4,
+    totalPositiveReplies: 2450,
+    positiveReplyRate: 5.4,
+    positiveReplyRateChange: 0.6,
+  };
+
+  // Generate sample campaigns
+  const topCampaigns: CampaignPerformanceMetric[] = [
+    {
+      id: '1',
+      name: 'Q4 Lead Generation Campaign',
+      clientName: 'TechCorp Solutions',
+      status: 'active',
+      totalSent: 12450,
+      totalOpened: 5123,
+      totalReplied: 987,
+      totalBounced: 234,
+      openRate: 41.2,
+      replyRate: 7.9,
+      bounceRate: 1.9,
+      lastActivity: new Date(now.getTime() - 2 * 60 * 60 * 1000).toISOString(), // 2 hours ago
+      daysActive: 23,
+    },
+    {
+      id: '2',
+      name: 'Product Launch Outreach',
+      clientName: 'Marketing Plus',
+      status: 'active',
+      totalSent: 8930,
+      totalOpened: 3521,
+      totalReplied: 672,
+      totalBounced: 156,
+      openRate: 39.4,
+      replyRate: 7.5,
+      bounceRate: 1.7,
+      lastActivity: new Date(now.getTime() - 4 * 60 * 60 * 1000).toISOString(), // 4 hours ago
+      daysActive: 18,
+    },
+    {
+      id: '3',
+      name: 'Customer Onboarding Series',
+      clientName: 'SaaS Startup',
+      status: 'paused',
+      totalSent: 5674,
+      totalOpened: 2234,
+      totalReplied: 445,
+      totalBounced: 98,
+      openRate: 39.4,
+      replyRate: 7.8,
+      bounceRate: 1.7,
+      lastActivity: new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString(), // 1 day ago
+      daysActive: 12,
+    },
+    {
+      id: '4',
+      name: 'Holiday Promotion',
+      clientName: 'E-commerce Pro',
+      status: 'active',
+      totalSent: 7234,
+      totalOpened: 2895,
+      totalReplied: 523,
+      totalBounced: 145,
+      openRate: 40.0,
+      replyRate: 7.2,
+      bounceRate: 2.0,
+      lastActivity: new Date(now.getTime() - 6 * 60 * 60 * 1000).toISOString(), // 6 hours ago
+      daysActive: 8,
+    },
+    {
+      id: '5',
+      name: 'Webinar Registration',
+      clientName: 'Educational Tech',
+      status: 'completed',
+      totalSent: 3456,
+      totalOpened: 1567,
+      totalReplied: 289,
+      totalBounced: 67,
+      openRate: 45.3,
+      replyRate: 8.4,
+      bounceRate: 1.9,
+      lastActivity: new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000).toISOString(), // 3 days ago
+      daysActive: 45,
+    },
+  ];
+
+  // Generate sample clients
+  const topClients: ClientPerformanceMetric[] = [
+    {
+      id: '1',
+      name: 'TechCorp Solutions',
+      campaignCount: 4,
+      emailAccountCount: 3,
+      totalSent: 18750,
+      totalOpened: 7523,
+      totalReplied: 1456,
+      openRate: 40.1,
+      replyRate: 7.8,
+      lastActivity: new Date(now.getTime() - 2 * 60 * 60 * 1000).toISOString(),
+      color: '#3B82F6',
+    },
+    {
+      id: '2',
+      name: 'Marketing Plus',
+      campaignCount: 3,
+      emailAccountCount: 2,
+      totalSent: 12340,
+      totalOpened: 4936,
+      totalReplied: 925,
+      openRate: 40.0,
+      replyRate: 7.5,
+      lastActivity: new Date(now.getTime() - 4 * 60 * 60 * 1000).toISOString(),
+      color: '#10B981',
+    },
+    {
+      id: '3',
+      name: 'SaaS Startup',
+      campaignCount: 2,
+      emailAccountCount: 2,
+      totalSent: 9876,
+      totalOpened: 3950,
+      totalReplied: 741,
+      openRate: 40.0,
+      replyRate: 7.5,
+      lastActivity: new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString(),
+      color: '#F59E0B',
+    },
+    {
+      id: '4',
+      name: 'E-commerce Pro',
+      campaignCount: 2,
+      emailAccountCount: 1,
+      totalSent: 8234,
+      totalOpened: 3294,
+      totalReplied: 593,
+      openRate: 40.0,
+      replyRate: 7.2,
+      lastActivity: new Date(now.getTime() - 6 * 60 * 60 * 1000).toISOString(),
+      color: '#EF4444',
+    },
+    {
+      id: '5',
+      name: 'Educational Tech',
+      campaignCount: 1,
+      emailAccountCount: 1,
+      totalSent: 4560,
+      totalOpened: 2066,
+      totalReplied: 383,
+      openRate: 45.3,
+      replyRate: 8.4,
+      lastActivity: new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000).toISOString(),
+      color: '#8B5CF6',
+    },
+  ];
+
+  // Generate daily performance trend data for last 365 days (1 year)
+  const performanceTrend: TimeSeriesDataPoint[] = [];
+  for (let i = 364; i >= 0; i--) {
+    const date = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
+    
+    // Generate realistic daily email activity (not cumulative)
+    // Weekend days have lower activity
+    const isWeekend = date.getDay() === 0 || date.getDay() === 6;
+    const baseActivity = isWeekend ? 0.3 : 1.0; // 30% activity on weekends
+    
+    // Daily email volumes (realistic business email sending)
+    const dailyEmailsSent = Math.floor((Math.random() * 300 + 100) * baseActivity); // 30-400 emails per day
+    
+    // Realistic engagement rates with some daily variation
+    const dailyOpenRate = 35 + (Math.random() * 15); // 35-50% open rate
+    const dailyReplyRate = 4 + (Math.random() * 8); // 4-12% reply rate  
+    const dailyBounceRate = 1 + (Math.random() * 3); // 1-4% bounce rate
+    
+    // Calculate daily numbers based on what was actually sent that day
+    const dailyEmailsOpened = Math.floor(dailyEmailsSent * (dailyOpenRate / 100));
+    const dailyEmailsReplied = Math.floor(dailyEmailsSent * (dailyReplyRate / 100));
+    const dailyEmailsBounced = Math.floor(dailyEmailsSent * (dailyBounceRate / 100));
+    
+    performanceTrend.push({
+      date: date.toISOString(),
+      emailsSent: dailyEmailsSent,
+      emailsOpened: dailyEmailsOpened,
+      emailsReplied: dailyEmailsReplied,
+      emailsBounced: dailyEmailsBounced,
+      openRate: dailyEmailsSent > 0 ? Math.round((dailyEmailsOpened / dailyEmailsSent) * 100 * 10) / 10 : 0,
+      replyRate: dailyEmailsSent > 0 ? Math.round((dailyEmailsReplied / dailyEmailsSent) * 100 * 10) / 10 : 0,
+    });
+  }
+
+  // Generate email account summary
+  const emailAccountSummary: EmailAccountSummary = {
+    totalAccounts: 18,
+    activeAccounts: 14,
+    warmingUpAccounts: 2,
+    warmedUpAccounts: 12,
+    pausedAccounts: 2,
+    issueAccounts: 0,
+    accountsByProvider: {
+      'Gmail': 8,
+      'Outlook': 6,
+      'Custom SMTP': 3,
+      'Yahoo': 1,
+    },
+    accountsByStatus: {
+      'Active': { count: 14, percentage: 77.8 },
+      'Warming': { count: 2, percentage: 11.1 },
+      'Paused': { count: 2, percentage: 11.1 },
+    },
+  };
+
+  // Generate recent activities
+  const recentActivities: RecentActivity[] = [
+    {
+      id: '1',
+      type: 'Campaign',
+      title: 'Campaign Started',
+      description: 'Q4 Lead Generation Campaign has been activated',
+      timestamp: new Date(now.getTime() - 30 * 60 * 1000), // 30 minutes ago
+      icon: 'Send',
+      color: 'green',
+    },
+    {
+      id: '2',
+      type: 'Email',
+      title: 'High Reply Rate Alert',
+      description: 'Product Launch Outreach achieved 8.2% reply rate',
+      timestamp: new Date(now.getTime() - 2 * 60 * 60 * 1000), // 2 hours ago
+      icon: 'TrendingUp',
+      color: 'blue',
+    },
+    {
+      id: '3',
+      type: 'System',
+      title: 'Email Account Connected',
+      description: 'New Gmail account added for TechCorp Solutions',
+      timestamp: new Date(now.getTime() - 4 * 60 * 60 * 1000), // 4 hours ago
+      icon: 'Mail',
+      color: 'green',
+    },
+    {
+      id: '4',
+      type: 'Campaign',
+      title: 'Campaign Paused',
+      description: 'Customer Onboarding Series paused for review',
+      timestamp: new Date(now.getTime() - 6 * 60 * 60 * 1000), // 6 hours ago
+      icon: 'Pause',
+      color: 'yellow',
+    },
+    {
+      id: '6',
+      type: 'System',
+      title: 'Client Added',
+      description: 'New client "Consulting Firm" has been added',
+      timestamp: new Date(now.getTime() - 12 * 60 * 60 * 1000), // 12 hours ago
+      icon: 'Users',
+      color: 'blue',
+    },
+    {
+      id: '7',
+      type: 'Campaign',
+      title: 'Campaign Completed',
+      description: 'Webinar Registration campaign completed successfully',
+      timestamp: new Date(now.getTime() - 24 * 60 * 60 * 1000), // 1 day ago
+      icon: 'CheckCircle',
+      color: 'green',
+    },
+    {
+      id: '8',
+      type: 'Email',
+      title: 'Bounce Rate Alert',
+      description: 'Holiday Promotion bounce rate increased to 2.8%',
+      timestamp: new Date(now.getTime() - 36 * 60 * 60 * 1000), // 1.5 days ago
+      icon: 'AlertTriangle',
+      color: 'red',
+    },
+  ];
+
+  return {
+    stats,
+    topCampaigns,
+    topClients,
+    performanceTrend,
+    emailAccountSummary,
+    recentActivities,
+  };
+}

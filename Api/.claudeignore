@@ -1,0 +1,118 @@
+# Claude Code Ignore File
+# Prevents unnecessary files from being read during context gathering
+
+# Build outputs
+bin/
+obj/
+out/
+build/
+dist/
+
+# NuGet packages
+*.nupkg
+packages/
+
+# User-specific files
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Rider
+.idea/
+*.sln.iml
+
+# VS Code
+.vscode/
+*.code-workspace
+
+# Visual Studio
+.vs/
+*.dbmdl
+
+# Frontend (Next.js)
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+frontend/.cache/
+frontend/build/
+frontend/dist/
+
+# Dependencies
+node_modules/
+bower_components/
+
+# Logs
+*.log
+logs/
+Data/Logs/
+
+# OS Files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Temporary files
+*.tmp
+*.temp
+*.swp
+*.swo
+*~
+
+# Test results
+TestResults/
+*.trx
+*.coverage
+*.coveragexml
+
+# Database files
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
+Data/database.db
+
+# Secrets and sensitive data
+*.pfx
+*.p12
+secrets.json
+appsettings.Development.json
+appsettings.Production.json
+
+# Documentation that's not needed for code context
+*.md.bak
+*.pdf
+*.doc
+*.docx
+
+# Media files
+*.jpg
+*.jpeg
+*.png
+*.gif
+*.ico
+*.svg
+*.mp4
+*.mp3
+*.wav
+
+# Swagger/OpenAPI generated files
+wwwroot/swagger-ui/
+
+# Package lock files (large, not needed for understanding code)
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Migration archives (we have consolidated migrations)
+Core/Database/Migrations/archive_old_migrations/
+
+# Compiled binaries
+*.dll
+*.exe
+*.pdb
+
+# Fody generated
+FodyWeavers.xml
+FodyWeavers.xsd

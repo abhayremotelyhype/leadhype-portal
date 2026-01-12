@@ -1,0 +1,748 @@
+'use client';
+
+import { useState, useEffect, useCallback } from 'react';
+import { BarChart, TrendingUp, Mail, Reply, CheckCircle, Clock, Users, Target, ChevronDown, ArrowUp, ArrowDown, Building2, User, Activity, Filter, Shield, Crown, Key, UserCheck, UserX } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Label } from '@/components/ui/label';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
+import { 
+  Pagination, 
+  PaginationContent, 
+  PaginationItem, 
+  PaginationLink, 
+  PaginationNext, 
+  PaginationPrevious,
+  PaginationEllipsis
+} from '@/components/ui/pagination';
+import { DualSortHeader } from '@/components/dual-sort-header';
+import { MultiSortConfig } from '@/types';
+import { apiClient, ENDPOINTS } from '@/lib/api';
+import { toast } from 'sonner';
+
+interface UserEngagementStats {
+  totalSent: number;
+  totalReplies: number;
+  positiveReplies: number;
+  emailsPerReply: number;
+  emailsPerPositiveReply: number;
+  repliesPerPositiveReply: number;
+  positiveReplyPercentage: number;
+}
+
+interface UserReplyTiming {
+  lastReplyAt?: string;
+  lastPositiveReplyAt?: string;
+  lastReplyRelative?: string;
+  lastPositiveReplyRelative?: string;
+}
+
+interface UserInfo {
+  id: string;
+  username: string;
+  email: string;
+  firstName?: string;
+  lastName?: string;
+  role: string;
+  isActive: boolean;
+  createdAt: string;
+  lastLoginAt?: string;
+  assignedClientCount: number;
+  accessibleCampaignCount: number;
+  activeCampaignCount: number;
+  accessibleEmailAccountCount: number;
+  hasApiKey: boolean;
+  apiKeyCreatedAt?: string;
+}
+
+interface UserStats {
+  user: UserInfo;
+  stats: UserEngagementStats;
+  timing: UserReplyTiming;
+}
+
+interface PaginationInfo {
+  page: number;
+  pageSize: number;
+  totalPages: number;
+  hasNextPage: boolean;
+  hasPreviousPage: boolean;
+}
+
+interface UserStatusSummary {
+  activeUsers: number;
+  inactiveUsers: number;
+  totalUsers: number;
+  adminUsers: number;
+  regularUsers: number;
+  usersWithApiKeys: number;
+  usersLoggedInLast30Days: number;
+}
+
+interface UserStatsResponse {
+  users: UserStats[];
+  totalCount: number;
+  generatedAt: string;
+  pagination: PaginationInfo;
+  aggregatedStats?: UserEngagementStats;
+  aggregatedTiming?: UserReplyTiming;
+  userStatusSummary?: UserStatusSummary;
+}
+
+export function UserStats() {
+  const [statsData, setStatsData] = useState<UserStatsResponse | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [sorting, setSorting] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(() => {
+    // Remember page size from localStorage
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('user-stats-page-size');
+      return saved ? parseInt(saved, 10) : 20;
+    }
+    return 20;
+  });
+  const [multiSort, setMultiSort] = useState<MultiSortConfig>({ sorts: [] });
+  const [userStatusFilter, setUserStatusFilter] = useState(() => {
+    // Remember status filter from localStorage
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('user-stats-status-filter');
+      return saved || 'active';
+    }
+    return 'active';
+  });
+  const [roleFilter, setRoleFilter] = useState<string | null>(() => {
+    // Remember role filter from localStorage
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('user-stats-role-filter');
+      return saved || null;
+    }
+    return null;
+  });
+
+  const loadStats = useCallback(async (page: number = 1, isSort: boolean = false) => {
+    try {
+      if (isSort) {
+        setSorting(true);
+      } else {
+        setLoading(true);
+      }
+      
+      // Build sort parameters from multiSort state
+      let sortBy = 'username';
+      let sortDescending = false;
+      
+      if (multiSort.sorts.length > 0) {
+        const primarySort = multiSort.sorts[0];
+        sortBy = primarySort.column;
+        sortDescending = primarySort.direction === 'desc';
+      }
+      
+      // Build filter request object for POST to avoid header size issues
+      const filterRequest = {
+        page: page,
+        pageSize: pageSize,
+        sortBy,
+        sortDescending,
+        roleFilter: roleFilter,
+        statusFilter: userStatusFilter && userStatusFilter !== 'all' ? userStatusFilter : null,
+        searchQuery: null // Can be added later for search functionality
+      };
+      
+      // Use POST request to send filter data in body instead of query parameters
+      const response = await apiClient.post<UserStatsResponse>(
+        '/api/v1/users/stats',
+        filterRequest
+      );
+      setStatsData(response);
+      setCurrentPage(page);
+    } catch (error: any) {
+        console.error('Failed to load user stats:', error);
+        
+        if (error.isAuthError) {
+          toast.error('Authentication required to view user statistics');
+        } else if (error.status === 403) {
+          toast.error('Insufficient permissions to view user statistics');
+        } else if (error.isNetworkError) {
+          toast.error('Unable to connect to the server');
+        } else {
+          toast.error('Failed to load user statistics');
+        }
+      } finally {
+        setLoading(false);
+        setSorting(false);
+      }
+  }, [pageSize, multiSort, userStatusFilter, roleFilter]);
+
+  // Handler for page size changes
+  const handlePageSizeChange = useCallback((newPageSize: string) => {
+    const size = parseInt(newPageSize, 10);
+    setPageSize(size);
+    setCurrentPage(1); // Reset to first page when changing page size
+    
+    // Save to localStorage
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('user-stats-page-size', newPageSize);
+    }
+  }, []);
+
+  // Handler for status filter changes
+  const handleStatusFilterChange = useCallback((newStatus: string) => {
+    setUserStatusFilter(newStatus);
+    setCurrentPage(1); // Reset to first page when changing filter
+    
+    // Save to localStorage
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('user-stats-status-filter', newStatus);
+    }
+  }, []);
+
+  // Handler for role filter changes
+  const handleRoleFilterChange = useCallback((newRole: string | null) => {
+    setRoleFilter(newRole);
+    setCurrentPage(1); // Reset to first page when changing filter
+    
+    // Save to localStorage
+    if (typeof window !== 'undefined') {
+      if (newRole) {
+        localStorage.setItem('user-stats-role-filter', newRole);
+      } else {
+        localStorage.removeItem('user-stats-role-filter');
+      }
+    }
+  }, []);
+
+  // Initial load and reload when dependencies change
+  useEffect(() => {
+    loadStats(currentPage);
+  }, [loadStats]);
+
+  // Handler for sorting changes
+  const handleSortChange = useCallback((column: string, direction: 'asc' | 'desc' | null) => {
+    if (direction === null) {
+      // Remove this column from sorts
+      setMultiSort(prev => ({
+        sorts: prev.sorts.filter(s => s.column !== column)
+      }));
+    } else {
+      // Update or add this column
+      setMultiSort(prev => {
+        const existingIndex = prev.sorts.findIndex(s => s.column === column);
+        if (existingIndex >= 0) {
+          // Update existing sort
+          const newSorts = [...prev.sorts];
+          newSorts[existingIndex] = { column, direction, mode: 'count' as const };
+          return { sorts: newSorts };
+        } else {
+          // Add new sort (limit to 3 sorts max)
+          const newSorts = [{ column, direction, mode: 'count' as const }, ...prev.sorts.slice(0, 2)];
+          return { sorts: newSorts };
+        }
+      });
+    }
+    
+    // Trigger immediate reload with sorting flag
+    loadStats(1, true);
+  }, [loadStats]);
+
+  // Pagination handlers
+  const handlePageChange = useCallback((page: number) => {
+    if (page >= 1 && statsData && page <= statsData.pagination.totalPages) {
+      loadStats(page);
+    }
+  }, [loadStats, statsData]);
+
+  const formatNumber = (num: number) => {
+    if (num >= 1000000) {
+      return (num / 1000000).toFixed(1) + 'M';
+    } else if (num >= 1000) {
+      return (num / 1000).toFixed(1) + 'K';
+    }
+    return num.toString();
+  };
+
+  const formatPercentage = (percentage: number) => {
+    return `${percentage.toFixed(1)}%`;
+  };
+
+  const formatRatio = (ratio: number) => {
+    return ratio === 0 ? '—' : ratio.toFixed(1);
+  };
+
+  const formatRelativeTime = (relativeTime?: string) => {
+    return relativeTime || '—';
+  };
+
+  const getRoleBadgeColor = (role: string) => {
+    return role === 'Admin' 
+      ? 'bg-purple-100 text-purple-800 border-purple-200'
+      : 'bg-blue-100 text-blue-800 border-blue-200';
+  };
+
+  const getStatusBadgeColor = (isActive: boolean) => {
+    return isActive
+      ? 'bg-green-100 text-green-800 border-green-200'
+      : 'bg-red-100 text-red-800 border-red-200';
+  };
+
+  if (loading) {
+    return (
+      <Card className="rounded-xl">
+        <CardHeader>
+          <Skeleton className="h-6 w-48" />
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            {[...Array(5)].map((_, i) => (
+              <div key={i} className="flex items-center space-x-4">
+                <Skeleton className="h-4 w-32" />
+                <Skeleton className="h-4 w-24" />
+                <Skeleton className="h-4 w-20" />
+                <Skeleton className="h-4 w-16" />
+                <Skeleton className="h-4 w-16" />
+                <Skeleton className="h-4 w-16" />
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (!statsData) {
+    return (
+      <Card className="rounded-xl">
+        <CardContent className="flex items-center justify-center py-12">
+          <div className="text-center">
+            <Activity className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
+            <h3 className="text-lg font-semibold mb-2">Failed to Load User Statistics</h3>
+            <p className="text-muted-foreground mb-4">
+              There was an error loading the user statistics data.
+            </p>
+            <Button onClick={() => loadStats(1)}>
+              Try Again
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  const summary = statsData?.userStatusSummary || {
+    activeUsers: 0,
+    inactiveUsers: 0,
+    totalUsers: 0,
+    adminUsers: 0,
+    regularUsers: 0,
+    usersWithApiKeys: 0,
+    usersLoggedInLast30Days: 0
+  };
+
+  const aggregatedStats = statsData?.aggregatedStats;
+
+  return (
+    <div className="space-y-6">
+      {/* User Statistics Table */}
+      <Card className="rounded-xl">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <Card className="rounded-xl">
+            <CardContent className="p-6">
+              <div className="flex items-center space-x-4">
+                <div className="p-2 bg-blue-100 rounded-lg">
+                  <Users className="h-6 w-6 text-blue-600" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold text-blue-600">{summary.totalUsers}</p>
+                  <p className="text-xs text-blue-600/70 font-medium">Total Users</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="rounded-xl">
+            <CardContent className="p-6">
+              <div className="flex items-center space-x-4">
+                <div className="p-2 bg-green-100 rounded-lg">
+                  <UserCheck className="h-6 w-6 text-green-600" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold text-green-600">{summary.activeUsers}</p>
+                  <p className="text-xs text-green-600/70 font-medium">Active Users</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="rounded-xl">
+            <CardContent className="p-6">
+              <div className="flex items-center space-x-4">
+                <div className="p-2 bg-purple-100 rounded-lg">
+                  <Crown className="h-6 w-6 text-purple-600" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold text-purple-600">{summary.adminUsers}</p>
+                  <p className="text-xs text-purple-600/70 font-medium">Admin Users</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="rounded-xl">
+            <CardContent className="p-6">
+              <div className="flex items-center space-x-4">
+                <div className="p-2 bg-orange-100 rounded-lg">
+                  <Key className="h-6 w-6 text-orange-600" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold text-orange-600">{summary.usersWithApiKeys}</p>
+                  <p className="text-xs text-orange-600/70 font-medium">With API Keys</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Additional summary cards */}
+          <Card className="rounded-xl">
+            <CardContent className="p-6">
+              <div className="flex items-center space-x-4">
+                <div className="p-2 bg-red-100 rounded-lg">
+                  <UserX className="h-6 w-6 text-red-600" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold text-red-600">{summary.inactiveUsers}</p>
+                  <p className="text-xs text-red-600/70 font-medium">Inactive</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="rounded-xl">
+            <CardContent className="p-6">
+              <div className="flex items-center space-x-4">
+                <div className="p-2 bg-teal-100 rounded-lg">
+                  <User className="h-6 w-6 text-teal-600" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold text-teal-600">{summary.regularUsers}</p>
+                  <p className="text-xs text-teal-600/70 font-medium">Regular Users</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="rounded-xl">
+            <CardContent className="p-6">
+              <div className="flex items-center space-x-4">
+                <div className="p-2 bg-indigo-100 rounded-lg">
+                  <Activity className="h-6 w-6 text-indigo-600" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold text-indigo-600">{summary.usersLoggedInLast30Days}</p>
+                  <p className="text-xs text-indigo-600/70 font-medium">Active (30d)</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Aggregated Performance Card */}
+          {aggregatedStats && (
+            <Card className="rounded-xl">
+              <CardContent className="p-6">
+                <div className="flex items-center space-x-4">
+                  <div className="p-2 bg-emerald-100 rounded-lg">
+                    <TrendingUp className="h-6 w-6 text-emerald-600" />
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold text-emerald-600">{formatPercentage(aggregatedStats.positiveReplyPercentage)}</p>
+                    <p className="text-xs text-emerald-600/70 font-medium">Avg Positive Reply Rate</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      </Card>
+
+      {/* Controls */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center space-x-4">
+          {/* Status Filter */}
+          <div className="flex items-center space-x-2">
+            <Label htmlFor="status-filter" className="text-sm font-medium">Status:</Label>
+            <Select value={userStatusFilter} onValueChange={handleStatusFilterChange}>
+              <SelectTrigger className="w-32">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Users</SelectItem>
+                <SelectItem value="active">Active</SelectItem>
+                <SelectItem value="inactive">Inactive</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Role Filter */}
+          <div className="flex items-center space-x-2">
+            <Label htmlFor="role-filter" className="text-sm font-medium">Role:</Label>
+            <Select value={roleFilter || 'all'} onValueChange={(value) => handleRoleFilterChange(value === 'all' ? null : value)}>
+              <SelectTrigger className="w-32">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Roles</SelectItem>
+                <SelectItem value="Admin">Admin</SelectItem>
+                <SelectItem value="User">User</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Page Size */}
+          <div className="flex items-center space-x-2">
+            <Label htmlFor="page-size" className="text-sm font-medium">Show:</Label>
+            <Select value={pageSize.toString()} onValueChange={handlePageSizeChange}>
+              <SelectTrigger className="w-20">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="10">10</SelectItem>
+                <SelectItem value="20">20</SelectItem>
+                <SelectItem value="50">50</SelectItem>
+                <SelectItem value="100">100</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+      </div>
+
+      {/* Users Table */}
+      <Card className="rounded-xl">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Shield className="w-5 h-5" />
+            User Statistics
+            <span className="text-sm font-normal text-muted-foreground">
+              ({statsData.totalCount} users)
+            </span>
+            {sorting && (
+              <div className="ml-2">
+                <div className="inline-flex items-center">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
+                </div>
+              </div>
+            )}
+          </CardTitle>
+          <p className="text-sm text-muted-foreground">
+            Last updated: {new Date(statsData.generatedAt).toLocaleString()}
+          </p>
+        </CardHeader>
+        <CardContent className="p-0">
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>
+                    <DualSortHeader
+                      column="username"
+                      currentSorts={multiSort.sorts}
+                      onSortChange={handleSortChange}
+                      className="font-semibold"
+                    >
+                      User
+                    </DualSortHeader>
+                  </TableHead>
+                  <TableHead>
+                    <DualSortHeader
+                      column="role"
+                      currentSorts={multiSort.sorts}
+                      onSortChange={handleSortChange}
+                      className="font-semibold"
+                    >
+                      Role & Status
+                    </DualSortHeader>
+                  </TableHead>
+                  <TableHead>
+                    <DualSortHeader
+                      column="assignedClientCount"
+                      currentSorts={multiSort.sorts}
+                      onSortChange={handleSortChange}
+                      className="font-semibold"
+                    >
+                      Access
+                    </DualSortHeader>
+                  </TableHead>
+                  <TableHead>Engagement</TableHead>
+                  <TableHead>Performance</TableHead>
+                  <TableHead>
+                    <DualSortHeader
+                      column="lastLoginAt"
+                      currentSorts={multiSort.sorts}
+                      onSortChange={handleSortChange}
+                      className="font-semibold"
+                    >
+                      Activity
+                    </DualSortHeader>
+                  </TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {statsData.users.map((userStat) => (
+                  <TableRow key={userStat.user.id}>
+                    <TableCell>
+                      <div className="space-y-1">
+                        <div className="font-medium">{userStat.user.username}</div>
+                        <div className="text-sm text-muted-foreground">{userStat.user.email}</div>
+                        {(userStat.user.firstName || userStat.user.lastName) && (
+                          <div className="text-xs text-muted-foreground">
+                            {userStat.user.firstName} {userStat.user.lastName}
+                          </div>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="space-y-2">
+                        <Badge className={getRoleBadgeColor(userStat.user.role)} variant="outline">
+                          {userStat.user.role}
+                        </Badge>
+                        <div>
+                          <Badge className={getStatusBadgeColor(userStat.user.isActive)} variant="outline">
+                            {userStat.user.isActive ? 'Active' : 'Inactive'}
+                          </Badge>
+                        </div>
+                        {userStat.user.hasApiKey && (
+                          <Badge variant="outline" className="bg-yellow-100 text-yellow-800 border-yellow-200">
+                            API Key
+                          </Badge>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="space-y-1 text-sm">
+                        <div className="flex items-center space-x-1">
+                          <Building2 className="w-3 h-3 text-muted-foreground" />
+                          <span>{userStat.user.assignedClientCount} clients</span>
+                        </div>
+                        <div className="flex items-center space-x-1">
+                          <Target className="w-3 h-3 text-muted-foreground" />
+                          <span>{userStat.user.activeCampaignCount}/{userStat.user.accessibleCampaignCount} campaigns</span>
+                        </div>
+                        <div className="flex items-center space-x-1">
+                          <Mail className="w-3 h-3 text-muted-foreground" />
+                          <span>{userStat.user.accessibleEmailAccountCount} email accounts</span>
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="space-y-1 text-sm">
+                        <div className="flex items-center space-x-1">
+                          <Mail className="w-3 h-3 text-blue-500" />
+                          <span className="font-medium">{formatNumber(userStat.stats.totalSent)}</span>
+                          <span className="text-muted-foreground">sent</span>
+                        </div>
+                        <div className="flex items-center space-x-1">
+                          <Reply className="w-3 h-3 text-green-500" />
+                          <span className="font-medium">{formatNumber(userStat.stats.totalReplies)}</span>
+                          <span className="text-muted-foreground">replies</span>
+                        </div>
+                        <div className="flex items-center space-x-1">
+                          <CheckCircle className="w-3 h-3 text-emerald-500" />
+                          <span className="font-medium">{formatNumber(userStat.stats.positiveReplies)}</span>
+                          <span className="text-muted-foreground">positive</span>
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="space-y-1 text-sm">
+                        <div>
+                          <span className="font-medium text-emerald-600">
+                            {formatPercentage(userStat.stats.positiveReplyPercentage)}
+                          </span>
+                          <span className="text-muted-foreground ml-1">positive rate</span>
+                        </div>
+                        <div className="text-muted-foreground">
+                          {formatRatio(userStat.stats.emailsPerPositiveReply)} emails/positive
+                        </div>
+                        <div className="text-muted-foreground">
+                          {formatRatio(userStat.stats.emailsPerReply)} emails/reply
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="space-y-1 text-sm">
+                        <div className="flex items-center space-x-1">
+                          <Clock className="w-3 h-3 text-muted-foreground" />
+                          <span className="text-muted-foreground">
+                            Login: {userStat.user.lastLoginAt ? new Date(userStat.user.lastLoginAt).toLocaleDateString() : 'Never'}
+                          </span>
+                        </div>
+                        <div className="text-muted-foreground">
+                          Last reply: {formatRelativeTime(userStat.timing.lastReplyRelative)}
+                        </div>
+                        <div className="text-muted-foreground">
+                          Last positive: {formatRelativeTime(userStat.timing.lastPositiveReplyRelative)}
+                        </div>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Pagination */}
+      {statsData.pagination.totalPages > 1 && (
+        <div className="flex items-center justify-between">
+          <p className="text-sm text-muted-foreground">
+            Showing {((statsData.pagination.page - 1) * statsData.pagination.pageSize) + 1} to{' '}
+            {Math.min(statsData.pagination.page * statsData.pagination.pageSize, statsData.totalCount)} of{' '}
+            {statsData.totalCount} users
+          </p>
+          <Pagination>
+            <PaginationContent>
+              <PaginationItem>
+                <PaginationPrevious 
+                  onClick={() => handlePageChange(currentPage - 1)}
+                  className={currentPage === 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                />
+              </PaginationItem>
+              
+              {/* Page numbers */}
+              {Array.from({ length: Math.min(5, statsData.pagination.totalPages) }, (_, i) => {
+                const pageNum = i + 1;
+                return (
+                  <PaginationItem key={pageNum}>
+                    <PaginationLink
+                      onClick={() => handlePageChange(pageNum)}
+                      isActive={pageNum === currentPage}
+                      className="cursor-pointer"
+                    >
+                      {pageNum}
+                    </PaginationLink>
+                  </PaginationItem>
+                );
+              })}
+              
+              {statsData.pagination.totalPages > 5 && (
+                <PaginationItem>
+                  <PaginationEllipsis />
+                </PaginationItem>
+              )}
+              
+              <PaginationItem>
+                <PaginationNext 
+                  onClick={() => handlePageChange(currentPage + 1)}
+                  className={currentPage === statsData.pagination.totalPages ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                />
+              </PaginationItem>
+            </PaginationContent>
+          </Pagination>
+        </div>
+      )}
+    </div>
+  );
+}
