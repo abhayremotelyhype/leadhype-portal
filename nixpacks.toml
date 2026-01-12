@@ -1,5 +1,5 @@
 [phases.setup]
-nixPkgs = ["dotnet-sdk-9"]
+nixPkgs = ["dotnet-sdk_8"]
 
 [phases.build]
 cmds = [
